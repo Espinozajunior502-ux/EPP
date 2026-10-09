@@ -141,7 +141,7 @@ function remoteChanged(){
 function fatalCloud(e){
  if(cloudReady){syncError(e);return}
  $('login').classList.add('hidden');$('app').classList.remove('hidden');
- $('view').innerHTML=`<div class="card"><h2>No se pudo conectar con la nube</h2><p>Código: ${esc((e&&(e.code||e.message))||'desconocido')}</p><p class="muted">${e&&e.code==='permission-denied'?'Firestore no permite leer con esta cuenta. Publica las reglas de seguridad indicadas y vuelve a abrir.':'Revisa tu conexión a internet y vuelve a intentar.'}</p><button class="btn primary" onclick="location.reload()">Reintentar</button></div>`;
+ $('view').innerHTML=`<div class="card"><h2>No se pudo conectar con la nube</h2><p>Código: ${esc((e&&(e.code||e.message))||'desconocido')}</p><p class="muted">${e&&e.code==='permission-denied'?'Esta cuenta no tiene permiso para ver los datos. Pide a quien administra Firebase que la autorice en las reglas de Firestore.':'Revisa tu conexión a internet y vuelve a intentar.'}</p><div class="btnrow"><button class="btn primary" onclick="location.reload()">Reintentar</button><button class="btn outline" onclick="AUTH.signOut().then(()=>location.reload())">Cerrar sesión</button></div></div>`;
 }
 function subscribeAll(){
  return Promise.all(STORES.map(s=>new Promise(res=>{
@@ -204,19 +204,27 @@ function logout(){
 // ----- Inicio de sesión -----
 function authMsg(e){
  const c=(e&&e.code)||'';
- if(['auth/invalid-credential','auth/wrong-password','auth/user-not-found','auth/invalid-email'].includes(c))return 'Correo o contraseña incorrectos.';
+ if(['auth/invalid-credential','auth/wrong-password','auth/user-not-found'].includes(c))return 'Correo o contraseña incorrectos. Si aún no tienes cuenta, toca “Crear cuenta”.';
+ if(c==='auth/invalid-email')return 'El correo no es válido.';
+ if(c==='auth/email-already-in-use')return 'Ese correo ya tiene cuenta. Toca “Entrar”.';
+ if(c==='auth/weak-password')return 'La contraseña debe tener al menos 6 caracteres.';
  if(c==='auth/operation-not-allowed'||c==='auth/configuration-not-found')return 'Falta activar “Correo/contraseña” en Firebase Authentication.';
  if(c==='auth/operation-not-supported-in-this-environment')return 'Abre la app desde http://localhost o desde tu página web, no como archivo suelto.';
  if(c==='auth/network-request-failed')return 'Sin conexión a internet.';
  if(c==='auth/too-many-requests')return 'Demasiados intentos. Espera unos minutos.';
- return 'No se pudo iniciar sesión ('+(c||e.message)+').';
+ return 'No se pudo completar ('+(c||e.message)+').';
 }
+let loginMode='in';
+function setLoginMode(m){loginMode=m;showLogin()}
 function showLogin(){
+ const prev=$('lemail')?$('lemail').value:'',up=loginMode==='up';
  $('app').classList.add('hidden');
- $('login').innerHTML=`<div class="loginbox"><img class="loginlogo" src="${LOGO}" alt="Megablessing"><h2 style="text-align:center;margin:0 0 4px">Verificación de EPP</h2><p class="muted" style="text-align:center;margin:0 0 14px">Inicia sesión para ver los datos del personal.</p>
- <div class="field"><label>Correo</label><input id="lemail" type="email" autocomplete="username" inputmode="email"></div>
- <div class="field"><label>Contraseña</label><input id="lpass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
- <button class="btn primary" style="width:100%" onclick="doLogin()">Entrar</button>
+ $('login').innerHTML=`<div class="loginbox"><img class="loginlogo" src="${LOGO}" alt="Megablessing"><h2 style="text-align:center;margin:0 0 4px">${up?'Crear cuenta':'Verificación de EPP'}</h2><p class="muted" style="text-align:center;margin:0 0 14px">${up?'Registra tu correo y una contraseña de al menos 6 caracteres.':'Inicia sesión para ver los datos del personal.'}</p>
+ <div class="field"><label>Correo</label><input id="lemail" type="email" autocomplete="username" inputmode="email" value="${esc(prev)}"></div>
+ <div class="field"><label>Contraseña</label><input id="lpass" type="password" autocomplete="${up?'new-password':'current-password'}" ${up?'':'onkeydown="if(event.key===\'Enter\')doLogin()"'}></div>
+ ${up?'<div class="field"><label>Repite la contraseña</label><input id="lpass2" type="password" autocomplete="new-password" onkeydown="if(event.key===\'Enter\')doLogin()"></div>':''}
+ <button class="btn primary" style="width:100%" onclick="doLogin()">${up?'Crear cuenta':'Entrar'}</button>
+ <button class="btn outline" style="width:100%;margin-top:8px" onclick="setLoginMode('${up?'in':'up'}')">${up?'Ya tengo cuenta · Entrar':'Crear cuenta'}</button>
  <div id="lerr" class="dangerText" style="margin-top:10px;font-size:12px"></div>
  ${location.protocol==='file:'?'<div class="datebanner">Estás abriendo el archivo directamente. El inicio de sesión necesita http://localhost o tu página publicada.</div>':''}</div>`;
  $('login').classList.remove('hidden');
@@ -224,7 +232,13 @@ function showLogin(){
 async function doLogin(){
  const e=$('lemail').value.trim(),p=$('lpass').value,err=$('lerr');err.textContent='';
  if(!e||!p){err.textContent='Escribe tu correo y contraseña.';return}
- try{await AUTH.signInWithEmailAndPassword(e,p)}catch(x){err.textContent=authMsg(x)}
+ try{
+  if(loginMode==='up'){
+   if(p.length<6){err.textContent='La contraseña debe tener al menos 6 caracteres.';return}
+   if(p!==$('lpass2').value){err.textContent='Las contraseñas no coinciden.';return}
+   await AUTH.createUserWithEmailAndPassword(e,p);
+  }else await AUTH.signInWithEmailAndPassword(e,p);
+ }catch(x){err.textContent=authMsg(x)}
 }
 async function startApp(){
  if(started)return;started=true;
