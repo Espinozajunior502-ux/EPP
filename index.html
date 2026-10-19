@@ -445,7 +445,8 @@ async function renderReports(){
  <div class="grid4"><div class="stat"><b>${pct}%</b><span>Cumplimiento global</span></div><div class="stat"><b>${f.length}</b><span>Inspecciones</span></div><div class="stat"><b>${f.filter(r=>(r.items||[]).some(i=>i.state==='no')).length}</b><span>Con faltas</span></div><div class="stat"><b>${faults(f).length}</b><span>Faltas abiertas</span></div></div>
  <div class="sectionhead"><h2>Por trabajador</h2></div><div class="card">${byP.length?byP.sort((a,b)=>(a.pct??101)-(b.pct??101)).map(x=>`<div class="barrow"><span>${esc(x.p.nombre)}</span><div class="bar"><i style="width:${x.pct??0}%"></i></div><b>${x.pct??'—'}%</b></div>`).join(''):'<div class="empty">Sin datos.</div>'}</div>
  <div class="sectionhead"><h2>Por elemento EPP</h2></div><div class="card">${byE.length?byE.map(x=>`<div class="barrow"><span>${esc(x.e.nombre)}</span><div class="bar"><i style="width:${x.p}%"></i></div><b>${x.p}%</b></div>`).join(''):'<div class="empty">Sin datos.</div>'}</div>
- <div class="sectionhead"><h2>Reportes detallados</h2></div><div class="card"><p class="muted">Genera un reporte imprimible o guárdalo como PDF. Incluye la foto y los datos registrados en el perfil, todas las inspecciones del periodo, resultados por EPP, observaciones y evidencias disponibles.</p><div class="field"><label>Reporte individual por trabajador</label><select id="reportPerson"><option value="">Selecciona un trabajador</option>${ps.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select></div><div class="btnrow"><button class="btn primary" onclick="printSelectedPersonReport()">👤 Reporte por persona</button><button class="btn outline" onclick="printDetailedReport(0)">👥 Reporte de todos</button></div></div>
+ <div class="sectionhead"><h2>Resumen general</h2></div><div class="card"><p class="muted">Genera un PDF con cumplimiento global, número de faltas, faltas más recurrentes, ranking por trabajador, cargo y día, motivos frecuentes y detalle de faltas.</p><div class="btnrow" style="margin-bottom:10px"><button class="btn outline sm" onclick="setSumRange('today')">Hoy</button><button class="btn outline sm" onclick="setSumRange('7')">7 días</button><button class="btn outline sm" onclick="setSumRange('30')">30 días</button><button class="btn outline sm" onclick="setSumRange('month')">Este mes</button><button class="btn outline sm" onclick="setSumRange('all')">Todo</button></div><div class="btnrow"><div class="field" style="margin:0;flex:1;min-width:130px"><label>Desde</label><input type="date" id="sumFrom" value="${state.reportFrom||addDays(today(),-29)}" max="${today()}"></div><div class="field" style="margin:0;flex:1;min-width:130px"><label>Hasta</label><input type="date" id="sumTo" value="${state.reportTo||today()}" max="${today()}"></div></div><button class="btn primary" style="width:100%;margin-top:12px" onclick="printSummaryReport()">📊 Generar resumen en PDF</button></div>
+  <div class="sectionhead"><h2>Reportes detallados</h2></div><div class="card"><p class="muted">Genera un reporte imprimible o guárdalo como PDF. Incluye la foto y los datos registrados en el perfil, todas las inspecciones del periodo, resultados por EPP, observaciones y evidencias disponibles.</p><div class="field"><label>Reporte individual por trabajador</label><select id="reportPerson"><option value="">Selecciona un trabajador</option>${ps.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select></div><div class="btnrow"><button class="btn primary" onclick="printSelectedPersonReport()">👤 Reporte por persona</button><button class="btn outline" onclick="printDetailedReport(0)">👥 Reporte de todos</button></div></div>
  <div class="sectionhead"><h2>Exportar datos</h2></div><div class="card"><div class="btnrow"><button class="btn primary" onclick="exportJSON()">⬇ Respaldo JSON</button><button class="btn outline" onclick="exportCSV()">▦ CSV</button></div><div class="muted" style="margin-top:8px">El respaldo incluye personas, fotos de perfil, EPP, inspectores, inspecciones, papelera y actividad.</div></div>`;
 }
 function shiftReportMonth(delta){const [y,m]=state.reportMonth.split('-').map(Number),d=new Date(y,m-1+delta,1);state.reportMonth=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;renderReports()}
@@ -557,6 +558,160 @@ async function printDetailedReport(personId=0){
  body{font:12px Arial,sans-serif;color:#222;margin:24px}h1{color:#c9001c;margin-bottom:4px}.subtitle{color:#555;margin-top:0}.profile{display:flex;gap:16px;align-items:center;border:1px solid #ccc;padding:12px;border-radius:10px;margin:18px 0 10px;break-inside:avoid}.photo{width:100px;height:100px;flex:0 0 100px;border:1px solid #ddd;border-radius:8px;overflow:hidden;display:grid;place-items:center}.photo img{width:100%;height:100%;object-fit:cover}.noPhoto{font-size:26px;color:#666}.pdata h2{margin:0 0 8px}.pdata p{margin:4px 0}.personReport{break-before:page}.personReport:first-of-type{break-before:auto}.inspection{border:1px solid #ddd;border-radius:8px;padding:12px;margin:12px 0;break-inside:avoid}.inspectionHead{display:flex;justify-content:space-between;align-items:start}.inspection h3{margin:0 0 5px}.inspection p{margin:6px 0}table{border-collapse:collapse;width:100%;margin-top:8px}th,td{border:1px solid #ccc;padding:7px;text-align:left;vertical-align:top}th{background:#f1f1f1}.ok{color:#16733c;font-weight:bold}.bad{color:#b6001b;font-weight:bold}.evidence{max-width:130px;max-height:100px;object-fit:contain}.exempt{background:#fff3d6;padding:8px}.summary{background:#f5f5f5;padding:10px;border-radius:8px}@media print{body{margin:10mm}.inspection{break-inside:avoid}}</style></head><body><h1>Reporte de Verificación de EPP · Megablessing</h1><p class="subtitle">Periodo: ${from?fmt(from):'Desde el inicio'} al ${to?fmt(to):'Hasta la fecha'} · Generado: ${new Date().toLocaleString('es-EC')} · Inspecciones: ${records.length}</p><div class="summary">Reporte ${personId?'individual':'general'} · Trabajadores incluidos: ${peopleWithRecords.length}</div>${reportPeople}<script>window.onload=()=>{setTimeout(()=>window.print(),500)};<\/script></body></html>`);
  w.document.close();
  } catch(err) { console.error(err); try { w.document.body.innerHTML='<p>No se pudo generar el reporte. Cierra esta ventana e inténtalo de nuevo.</p>' } catch {} toast('No se pudo generar el reporte'); }
+}
+/* =====================================================================
+   RESUMEN GENERAL EN PDF  ·  Megablessing Verificación EPP 2.0
+   PASO A: pega TODO este bloque dentro de tu <script>, justo antes de la línea
+           function printReport(){return printDetailedReport(0)}
+   PASO B: ver instrucciones al final de este archivo (tarjeta en Reportes)
+   ===================================================================== */
+function setSumRange(k){
+ const t=today();let f='',to=t;
+ if(k==='today')f=t;
+ else if(k==='7')f=addDays(t,-6);
+ else if(k==='30')f=addDays(t,-29);
+ else if(k==='month')f=t.slice(0,8)+'01';
+ else if(k==='all'){f='';to=''}
+ if($('sumFrom'))$('sumFrom').value=f;
+ if($('sumTo'))$('sumTo').value=to;
+}
+async function printSummaryReport(){
+ const from=$('sumFrom')?.value||'',to=$('sumTo')?.value||'';
+ if(from&&to&&from>to)return toast('«Desde» no puede ser posterior a «Hasta»');
+ const w=window.open('','_blank');
+ if(!w){toast('El navegador bloqueó la ventana. Permite las ventanas emergentes y vuelve a intentarlo.');return}
+ w.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Preparando resumen…</title></head><body style="font-family:Arial;padding:24px">Preparando resumen general…</body></html>');
+ try{
+  const [allRecs,ps,epps]=await Promise.all([all('records'),all('people'),all('epp')]);
+  const rs=allRecs.filter(r=>(!from||r.date>=from)&&(!to||r.date<=to)).sort((a,b)=>a.date.localeCompare(b.date)||(a.ts||0)-(b.ts||0));
+  if(!rs.length){w.close();toast('No hay inspecciones en el rango seleccionado');return}
+
+  // ---------- Cálculos ----------
+  const pctN=(a,b)=>b?a/b*100:null;
+  const fp=v=>v==null?'—':v.toFixed(1).replace('.',',')+'%';
+  const col=v=>v==null?'#999':v>=90?'#198754':v>=75?'#c98200':'#e40421';
+  const cls=v=>v==null?'':v>=90?'ok':v>=75?'warn':'bad';
+  const bar=(v,c)=>`<div class="bar"><i style="width:${Math.max(0,Math.min(100,v||0))}%;background:${c||col(v)}"></i></div>`;
+  const pById=Object.fromEntries(ps.map(p=>[p.id,p]));
+  let yes=0,no=0,na=0,open=0,closed=0,exemptN=0,recConFalta=0;
+  const E={},P={},D={},C={},I={},M={},falls=[];
+  rs.forEach(r=>{
+   const p=pById[r.personId]||{nombre:'Trabajador eliminado',cargo:''};
+   const its=r.items||[];
+   if(r.exempted)exemptN++;
+   if(its.some(i=>i.state==='no'))recConFalta++;
+   const pp=P[r.personId]||(P[r.personId]={p,n:0,yes:0,no:0,exempt:0});pp.n++;if(r.exempted)pp.exempt++;
+   const dd=D[r.date]||(D[r.date]={n:0,yes:0,no:0});dd.n++;
+   const cg=p.cargo||'Sin cargo';const cc=C[cg]||(C[cg]={n:0,yes:0,no:0});cc.n++;
+   const ik=r.inspector||'Sin inspector';const ii=I[ik]||(I[ik]={n:0,no:0});ii.n++;
+   its.forEach(i=>{
+    const nm=i.eppName||epps.find(e=>e.id===i.eppId)?.nombre||('EPP '+i.eppId);
+    const ee=E[nm]||(E[nm]={nm,yes:0,no:0,na:0});
+    if(i.state==='yes'){yes++;ee.yes++;pp.yes++;dd.yes++;cc.yes++}
+    else if(i.state==='no'){
+     no++;ee.no++;pp.no++;dd.no++;cc.no++;ii.no++;
+     const isClosed=i.fault?.status==='closed';isClosed?closed++:open++;
+     const reason=(i.note||i.fault?.reason||r.obs||'').trim();
+     falls.push({date:r.date,p,nm,reason,isClosed,closure:i.fault?.closure||''});
+     const key=reason.toLowerCase().replace(/\s+/g,' ');
+     const mm=M[key]||(M[key]={txt:reason||'Sin motivo indicado',n:0});mm.n++;
+    }else{na++;ee.na++}
+   });
+  });
+  const ev=yes+no, global=pctN(yes,ev), nDays=Object.keys(D).length;
+  const eppArr=Object.values(E).map(e=>({...e,ev:e.yes+e.no,pct:pctN(e.yes,e.yes+e.no)})).filter(e=>e.ev);
+  const recurrentes=eppArr.filter(e=>e.no>0).sort((a,b)=>b.no-a.no||a.pct-b.pct);
+  const eppByPct=eppArr.slice().sort((a,b)=>a.pct-b.pct);
+  const persArr=Object.values(P).map(x=>({...x,pct:pctN(x.yes,x.yes+x.no)})).sort((a,b)=>b.no-a.no||(a.pct??101)-(b.pct??101)||a.p.nombre.localeCompare(b.p.nombre,'es'));
+  const cargoArr=Object.entries(C).map(([k,v])=>({k,...v,pct:pctN(v.yes,v.yes+v.no)})).sort((a,b)=>(a.pct??101)-(b.pct??101));
+  const insArr=Object.entries(I).map(([k,v])=>({k,...v})).sort((a,b)=>b.n-a.n);
+  const dayArr=Object.entries(D).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v])=>({d,...v,pct:pctN(v.yes,v.yes+v.no)}));
+  const motArr=Object.values(M).sort((a,b)=>b.n-a.n).slice(0,10);
+  const worstDay=dayArr.slice().sort((a,b)=>b.no-a.no)[0];
+  const sinInsp=ps.filter(p=>p.active!==false&&!P[p.id]).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  const reincidentes=persArr.filter(x=>x.no>=2);
+
+  const tbl=(heads,rows,empty)=>rows.length?`<table><thead><tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`:`<p class="muted">${empty||'Sin datos.'}</p>`;
+  const kpi=(v,l,c)=>`<div class="kpi"><b ${c?`style="color:${c}"`:''}>${v}</b><span>${l}</span></div>`;
+  const periodo=`${from?fmt(from):'Inicio del historial'} al ${to?fmt(to):'hoy'}`;
+
+  const conclusion=[
+   `En el periodo se realizaron <b>${rs.length}</b> inspecciones en <b>${nDays}</b> día(s), con un cumplimiento global de <b>${fp(global)}</b>.`,
+   no?`Se registraron <b>${no}</b> falta(s) en <b>${recConFalta}</b> inspección(es); <b>${open}</b> siguen abiertas y <b>${closed}</b> fueron cerradas.`:'No se registró ninguna falta en el periodo.',
+   recurrentes[0]?`El elemento con más faltas es <b>${esc(recurrentes[0].nm)}</b> (${recurrentes[0].no} falta${recurrentes[0].no>1?'s':''}, ${Math.round(recurrentes[0].no/no*100)}% del total).`:'',
+   reincidentes.length?`Trabajadores con 2 o más faltas: <b>${reincidentes.map(x=>esc(x.p.nombre)).join(', ')}</b>.`:'',
+   worstDay&&worstDay.no?`El día con más faltas fue el <b>${fmt(worstDay.d)}</b> (${worstDay.no}).`:''
+  ].filter(Boolean).map(x=>`<li>${x}</li>`).join('');
+
+  const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Resumen general EPP</title><style>
+  @page{size:A4;margin:12mm}
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font:12px Arial,sans-serif;color:#222;margin:0;padding:20px}
+  .head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #e40421;padding-bottom:10px;margin-bottom:14px}
+  .head img{height:46px;object-fit:contain}h1{color:#c9001c;margin:0 0 4px;font-size:22px}.sub{color:#555;margin:0}
+  h2{font-size:15px;margin:20px 0 8px;color:#c9001c;border-left:4px solid #e40421;padding-left:8px;break-after:avoid}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.kpi{border:1px solid #ddd;border-radius:10px;padding:10px;background:#fafafa;break-inside:avoid}
+  .kpi b{display:block;font-size:22px}.kpi span{display:block;color:#666;font-size:10.5px;margin-top:3px}
+  ul.concl{background:#f5f5f5;border-radius:8px;padding:10px 10px 10px 28px;margin:12px 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin-top:4px}th,td{border:1px solid #ccc;padding:6px 7px;text-align:left;vertical-align:middle}th{background:#f1f1f1;font-size:11px}
+  tr{break-inside:avoid}.num{text-align:right;white-space:nowrap}.ok{color:#16733c;font-weight:bold}.warn{color:#8b5a00;font-weight:bold}.bad{color:#b6001b;font-weight:bold}
+  .bar{height:9px;background:#e9e7e2;border-radius:99px;overflow:hidden;min-width:90px}.bar i{display:block;height:100%;border-radius:99px}
+  .muted{color:#777}.tag{display:inline-block;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:bold}.t-open{background:#fdecef;color:#b6001b}.t-closed{background:#eaf7ef;color:#14753f}
+  .foot{margin-top:20px;color:#888;font-size:10px;text-align:center;border-top:1px solid #ddd;padding-top:8px}
+  </style></head><body>
+  <div class="head"><div><h1>Resumen general de verificación de EPP</h1><p class="sub"><b>Megablessing</b> · Periodo: ${periodo} · Generado: ${new Date().toLocaleString('es-EC')}</p></div>${typeof LOGO!=='undefined'&&LOGO?`<img src="${LOGO}" alt="Megablessing">`:''}</div>
+
+  <div class="kpis">
+   ${kpi(fp(global),'Cumplimiento global',col(global))}
+   ${kpi(no,'Faltas totales (No cumple)',no?'#b6001b':'#198754')}
+   ${kpi(rs.length,'Inspecciones realizadas')}
+   ${kpi(Object.keys(P).length,'Trabajadores inspeccionados')}
+   ${kpi(nDays,'Días con inspecciones')}
+   ${kpi(recConFalta+' ('+fp(pctN(recConFalta,rs.length))+')','Inspecciones con faltas')}
+   ${kpi(open,'Faltas abiertas',open?'#c98200':'#198754')}
+   ${kpi(closed+' ('+fp(pctN(closed,no))+')','Faltas cerradas (resueltas)')}
+   ${kpi(ev,'Parámetros evaluados')}
+   ${kpi(yes,'Cumple','#198754')}
+   ${kpi(na,'N/A')}
+   ${kpi(exemptN,'Exoneradas de verificación')}
+  </div>
+
+  <h2>Conclusiones del periodo</h2><ul class="concl">${conclusion}</ul>
+
+  <h2>Faltas más recurrentes por elemento EPP</h2>
+  ${tbl(['#','Elemento','Faltas','% del total de faltas','Frecuencia'],recurrentes.map((e,i)=>`<tr><td>${i+1}</td><td>${esc(e.nm)}</td><td class="num bad">${e.no}</td><td class="num">${fp(pctN(e.no,no))}</td><td>${bar(pctN(e.no,recurrentes[0].no),'#e40421')}</td></tr>`),'No hubo faltas en el periodo. ✓')}
+
+  <h2>Cumplimiento por elemento EPP</h2>
+  ${tbl(['Elemento','Evaluados','Cumple','No cumple','N/A','Cumplimiento',''],eppByPct.map(e=>`<tr><td>${esc(e.nm)}</td><td class="num">${e.ev}</td><td class="num">${e.yes}</td><td class="num ${e.no?'bad':''}">${e.no}</td><td class="num">${e.na}</td><td class="num ${cls(e.pct)}">${fp(e.pct)}</td><td>${bar(e.pct)}</td></tr>`))}
+
+  <h2>Motivos de incumplimiento más frecuentes</h2>
+  ${tbl(['Motivo / observación','Veces'],motArr.map(m=>`<tr><td>${esc(m.txt)}</td><td class="num">${m.n}</td></tr>`),'Sin faltas registradas.')}
+
+  <h2>Cumplimiento por trabajador</h2>
+  ${tbl(['Trabajador','Cargo','Inspecc.','Faltas','Cumplimiento',''],persArr.map(x=>`<tr><td>${esc(x.p.nombre)}${x.no>=2?' <span class="tag t-open">Reincidente</span>':''}</td><td>${esc(x.p.cargo||'—')}</td><td class="num">${x.n}</td><td class="num ${x.no?'bad':''}">${x.no}</td><td class="num ${cls(x.pct)}">${x.exempt===x.n?'Exonerado':fp(x.pct)}</td><td>${bar(x.pct)}</td></tr>`))}
+
+  <h2>Cumplimiento por cargo</h2>
+  ${tbl(['Cargo','Inspecciones','Faltas','Cumplimiento',''],cargoArr.map(x=>`<tr><td>${esc(x.k)}</td><td class="num">${x.n}</td><td class="num ${x.no?'bad':''}">${x.no}</td><td class="num ${cls(x.pct)}">${fp(x.pct)}</td><td>${bar(x.pct)}</td></tr>`))}
+
+  <h2>Evolución diaria</h2>
+  ${tbl(['Fecha','Inspecciones','Faltas','Cumplimiento',''],dayArr.map(x=>`<tr><td>${fmt(x.d)}</td><td class="num">${x.n}</td><td class="num ${x.no?'bad':''}">${x.no}</td><td class="num ${cls(x.pct)}">${fp(x.pct)}</td><td>${bar(x.pct)}</td></tr>`))}
+
+  <h2>Inspecciones por inspector</h2>
+  ${tbl(['Inspector','Inspecciones','Faltas detectadas'],insArr.map(x=>`<tr><td>${esc(x.k)}</td><td class="num">${x.n}</td><td class="num">${x.no}</td></tr>`))}
+
+  <h2>Detalle de faltas (${no})</h2>
+  ${tbl(['Fecha','Trabajador','Elemento','Motivo','Estado'],falls.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(f=>`<tr><td class="num">${fmt(f.date)}</td><td>${esc(f.p.nombre)}</td><td>${esc(f.nm)}</td><td>${esc(f.reason||'—')}${f.closure?`<br><span class="muted">Corrección: ${esc(f.closure)}</span>`:''}</td><td><span class="tag ${f.isClosed?'t-closed':'t-open'}">${f.isClosed?'Cerrada':'Abierta'}</span></td></tr>`),'No hubo faltas en el periodo. ✓')}
+
+  ${sinInsp.length?`<h2>Personal activo sin inspecciones en el periodo (${sinInsp.length})</h2><p>${sinInsp.map(p=>esc(p.nombre)).join(' · ')}</p>`:''}
+
+  <div class="foot">Megablessing · Verificación EPP 2.0 · Cumplimiento = parámetros «Cumple» ÷ (Cumple + No cumple); los N/A y las exoneraciones no se cuentan.</div>
+  <script>window.onload=()=>{setTimeout(()=>window.print(),600)};<\/script></body></html>`;
+  w.document.open();w.document.write(html);w.document.close();
+ }catch(err){
+  console.error(err);
+  try{w.document.body.innerHTML='<p>No se pudo generar el resumen. Cierra esta ventana e inténtalo de nuevo.</p>'}catch{}
+  toast('No se pudo generar el resumen');
+ }
 }
 function printReport(){return printDetailedReport(0)}
 async function openFaultsFromNav(){openFaults()}
